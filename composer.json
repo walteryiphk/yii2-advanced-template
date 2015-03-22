@@ -8,7 +8,7 @@
         "tutorial": "http://www.freetuts.org/tutorial/view?id=6",
         "source": "https://github.com/nenad-zivkovic/yii2-advanced-template"
     },
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
     "repositories": [
         {
             "url": "git://github.com/walteryiphk/yii2-oauth2-server",

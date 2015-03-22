@@ -8,14 +8,25 @@
         "tutorial": "http://www.freetuts.org/tutorial/view?id=6",
         "source": "https://github.com/nenad-zivkovic/yii2-advanced-template"
     },
-    "minimum-stability": "stable",
+    "minimum-stability": "dev",
+    "repositories": [
+        {
+            "url": "git://github.com/walteryiphk/yii2-oauth2-server",
+            "type": "git"
+        },
+        {
+            "url": "git://github.com/walteryiphk/yii2-advanced-template",
+            "type": "git"
+        }
+    ],
     "require": {
         "php": ">=5.4.0",
         "yiisoft/yii2": "*",
         "yiisoft/yii2-bootstrap": "*",
         "yiisoft/yii2-swiftmailer": "*",
         "nenad/yii2-password-strength": "*",
-        "mihaildev/yii2-ckeditor": "*"
+        "mihaildev/yii2-ckeditor": "*",
+        "filsh/yii2-oauth2-server": "*"
     },
     "require-dev": {
         "yiisoft/yii2-codeception": "*",

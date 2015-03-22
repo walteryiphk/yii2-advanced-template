@@ -1,10 +1,11 @@
 <?php
 namespace common\models;
 
+use Yii;
 use common\rbac\models\Role;
 use nenad\passwordStrength\StrengthValidator;
 use yii\behaviors\TimestampBehavior;
-use Yii;
+use yii\db\Expression;
 
 /**
  * This is the user model class extending UserIdentity.
@@ -12,7 +13,7 @@ use Yii;
  *
  * @property $role Role
  */
-class User extends UserIdentity
+class User extends UserIdentity implements \OAuth2\Storage\UserCredentialsInterface
 {
     const STATUS_DELETED = 0;
     const STATUS_NOT_ACTIVE = 1;
@@ -42,7 +43,7 @@ class User extends UserIdentity
             ['password', 'required', 'on' => 'create'],
             // use passwordStrengthRule() method to determine password strength
             $this->passwordStrengthRule(),
-                      
+
             ['username', 'unique', 'message' => 'This username has already been taken.'],
             ['email', 'unique', 'message' => 'This email address has already been taken.'],
         ];
@@ -58,7 +59,7 @@ class User extends UserIdentity
         // get setting value for 'Force Strong Password'
         $fsp = Yii::$app->params['fsp'];
 
-        // password strength rule is determined by StrengthValidator 
+        // password strength rule is determined by StrengthValidator
         // presets are located in: vendor/nenad/yii2-password-strength/presets.php
         $strong = [['password'], StrengthValidator::className(), 'preset'=>'normal'];
 
@@ -92,7 +93,7 @@ class User extends UserIdentity
             'id' => Yii::t('app', 'ID'),
             'username' => Yii::t('app', 'Username'),
             'password' => Yii::t('app', 'Password'),
-            'email' => Yii::t('app', 'Email'),
+            'email' => Yii::t('app', 'Primay Email'),
             'status' => Yii::t('app', 'Status'),
             'created_at' => Yii::t('app', 'Created At'),
             'updated_at' => Yii::t('app', 'Updated At'),
@@ -113,13 +114,13 @@ class User extends UserIdentity
 
     /**
      * Relation with Article model.
-     * 
+     *
      * @return \yii\db\ActiveQuery
      */
     public function getArticles()
     {
         return $this->hasMany(Article::className(), ['user_id' => 'id']);
-    }    
+    }
 
 //------------------------------------------------------------------------------------------------//
 // USER FINDERS
@@ -134,8 +135,8 @@ class User extends UserIdentity
     public static function findByUsername($username)
     {
         return static::findOne(['username' => $username, 'status' => User::STATUS_ACTIVE]);
-    }  
-    
+    }
+
     /**
      * Finds user by email.
      *
@@ -145,7 +146,7 @@ class User extends UserIdentity
     public static function findByEmail($email)
     {
         return static::findOne(['email' => $email, 'status' => User::STATUS_ACTIVE]);
-    } 
+    }
 
     /**
      * Finds user by password reset token.
@@ -155,7 +156,7 @@ class User extends UserIdentity
      */
     public static function findByPasswordResetToken($token)
     {
-        if (!static::isPasswordResetTokenValid($token)) 
+        if (!static::isPasswordResetTokenValid($token))
         {
             return null;
         }
@@ -195,7 +196,7 @@ class User extends UserIdentity
     {
         // if scenario is 'lwe', we need to check email, otherwise we check username
         $field = ($scenario === 'lwe') ? 'email' : 'username';
-        
+
         if ($user = static::findOne([$field => $username]))
         {
             if ($user->validatePassword($password))
@@ -205,14 +206,14 @@ class User extends UserIdentity
             else
             {
                 return false; // invalid password
-            }            
+            }
         }
         else
         {
             return false; // invalid username|email
         }
     }
-  
+
 //------------------------------------------------------------------------------------------------//
 // HELPERS
 //------------------------------------------------------------------------------------------------//
@@ -274,7 +275,7 @@ class User extends UserIdentity
     {
         $this->password_reset_token = Yii::$app->security->generateRandomString() . '_' . time();
     }
-    
+
     /**
      * Removes password reset token.
      */
@@ -285,13 +286,13 @@ class User extends UserIdentity
 
     /**
      * Finds out if password reset token is valid.
-     * 
+     *
      * @param  string $token Password reset token.
      * @return bool
      */
     public static function isPasswordResetTokenValid($token)
     {
-        if (empty($token)) 
+        if (empty($token))
         {
             return false;
         }
@@ -301,7 +302,7 @@ class User extends UserIdentity
         $parts = explode('_', $token);
 
         $timestamp = (int) end($parts);
-        
+
         return $timestamp + $expire >= time();
     }
 
@@ -319,5 +320,69 @@ class User extends UserIdentity
     public function removeAccountActivationToken()
     {
         $this->account_activation_token = null;
+    }
+
+    /**
+     * Grant access tokens for basic user credentials.
+     *
+     * Check the supplied username and password for validity.
+     *
+     * You can also use the $client_id param to do any checks required based
+     * on a client, if you need that.
+     *
+     * Required for OAuth2::GRANT_TYPE_USER_CREDENTIALS.
+     *
+     * @param $username
+     * Username to be check with.
+     * @param $password
+     * Password to be check with.
+     *
+     * @return
+     * TRUE if the username and password are valid, and FALSE if it isn't.
+     * Moreover, if the username and password are valid, and you want to
+     *
+     * @see http://tools.ietf.org/html/rfc6749#section-4.3
+     *
+     * @ingroup oauth2_section_4
+     */
+    public function checkUserCredentials($username, $password)
+    {
+        $user = $this->findByUsername($username);
+        if (!$user || !$user->validatePassword($password)) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * @return
+     * ARRAY the associated "user_id" and optional "scope" values
+     * This function MUST return FALSE if the requested user does not exist or is
+     * invalid. "scope" is a space-separated list of restricted scopes.
+     * @code
+     * return array(
+     *     "user_id"  => USER_ID,    // REQUIRED user_id to be stored with the authorization code or access token
+     *     "scope"    => SCOPE       // OPTIONAL space-separated list of restricted scopes
+     * );
+     * @endcode
+     */
+    public function getUserDetails($username)
+    {
+        $user = $this->findByUsername($username);
+        if ($user)
+        {
+            return ["user_id"=>$user->id];
+        }
+        return false;
+    }
+
+    public static function findIdentityByAccessToken($token, $type = null)
+    {
+        $model  = \filsh\yii2\oauth2server\models\OauthAccessTokens::find()->where('access_token = :token AND expires >= :current',[':token' => $token, ':current' => new Expression('NOW()')])->one();
+        if($model !== null)
+        {
+            return static::findOne(['id'=>$model->user_id]) ;
+        }
+        return null;
     }
 }

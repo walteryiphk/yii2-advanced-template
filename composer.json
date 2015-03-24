@@ -13,10 +13,6 @@
         {
             "url": "git://github.com/walteryiphk/yii2-oauth2-server",
             "type": "git"
-        },
-        {
-            "url": "git://github.com/walteryiphk/yii2-advanced-template",
-            "type": "git"
         }
     ],
     "require": {

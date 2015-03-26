@@ -11,7 +11,7 @@
     "minimum-stability": "stable",
     "repositories": [
         {
-            "url": "https://github.com/walteryiphk/yii2-oauth2-server",
+            "url": "https://github.com/walteryiphk/yii2-oauth2-server.git",
             "type": "git"
         }
     ],
